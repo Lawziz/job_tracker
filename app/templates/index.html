@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>💼 My Job Applications (API Driven)</h1>
+    
+    <!-- JavaScript handles this form submission natively now -->
+    <form id="jobForm">
+        <input type="text" id="company" placeholder="Company" required>
+        <input type="text" id="role" placeholder="Role Title" required>
+        <button type="submit">Track Job</button>
+    </form>
+    
+    <hr>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Company</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <!-- JavaScript will dynamically inject <tr> rows here -->
+        <tbody id="jobsTableBody">
+            <tr>
+                <td colspan="4">Loading applications...</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- 🧠 The JavaScript Controller -->
+    <script>
+        // Track the current logged-in user's ID 
+        // (We can grab this once from Flask dynamically)
+        const CURRENT_USER_ID = {{ current_user.id }};
+
+        // 1. FETCH & DISPLAY ALL JOBS (GET)
+        async function loadJobs() {
+            try {
+                const response = await fetch('/api/jobs');
+                const data = await response.json();
+                
+                const tableBody = document.getElementById('jobsTableBody');
+                tableBody.innerHTML = ''; // Clear loading text or old rows
+
+                if (data.jobs.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="4">No job applications tracked yet.</td></tr>';
+                    return;
+                }
+
+                // Filter jobs on the frontend to only show the logged-in user's entries
+                const myJobs = data.jobs.filter(job => job.user_id === CURRENT_USER_ID);
+
+                myJobs.forEach(job => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><strong>${escapeHtml(job.company)}</strong></td>
+                        <td>${escapeHtml(job.role)}</td>
+                        <td><mark>${escapeHtml(job.status)}</mark></td>
+                        <td>
+                            <button onclick="deleteJob(${job.id})" style="background-color:#ff4d4d; color:white; padding: 2px 8px;">X</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+            }
+        }
+
+        // 2. SUBMIT A NEW JOB (POST)
+        document.getElementById('jobForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); // Stop page from hard refreshing
+
+            const companyInput = document.getElementById('company');
+            const roleInput = document.getElementById('role');
+
+            const payload = {
+                company: companyInput.value,
+                role: roleInput.value,
+                user_id: CURRENT_USER_ID,
+                status: 'Applied'
+            };
+
+            try {
+                const response = await fetch('/api/jobs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    companyInput.value = ''; // Reset fields
+                    roleInput.value = '';
+                    loadJobs(); // Instantly reload table without refreshing the browser!
+                }
+            } catch (error) {
+                console.error('Error adding job:', error);
+            }
+        });
+
+        // 3. REMOVE A JOB (DELETE)
+        async function deleteJob(jobId) {
+            if (!confirm('Are you sure you want to delete this tracker entry?')) return;
+
+            try {
+                const response = await fetch(`/api/jobs/${jobId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadJobs(); // Refresh the list seamlessly
+                }
+            } catch (error) {
+                console.error('Error deleting job:', error);
+            }
+        }
+
+        // Helper helper function to prevent cross-site scripting (XSS)
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // Run when page loads
+        document.addEventListener('DOMContentLoaded', loadJobs);
+    </script>
+{% endblock %}

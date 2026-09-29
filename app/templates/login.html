@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>Login to Tracker</h2>
+    <form method="POST">
+        {{ form.hidden_tag() }} <!-- Renders mandatory hidden anti-CSRF token security tags -->
+        <p>{{ form.email.label }}<br>{{ form.email(size=32) }}</p>
+        <p>{{ form.password.label }}<br>{{ form.password(size=32) }}</p>
+        <p>{{ form.submit() }}</p>
+    </form>
+    <small>New here? <a href="{{ url_for('auth.register') }}">Create an account</a></small>
+{% endblock %}
