@@ -11,7 +11,7 @@ def index():
     if request.method == 'POST':
         company = request.form.get('company')
         role = request.form.get('role')
-        new_job = JobApplication(company=company, role=role, applicant=current_user)
+        new_job = JobApplication(company=company, role=role, user_id=current_user.id)
         db.session.add(new_job)
         db.session.commit()
         return redirect(url_for('main.index'))
@@ -24,7 +24,7 @@ def index():
 @login_required
 def update_job(job_id):
     job = JobApplication.query.get_or_404(job_id)
-    if job.applicant != current_user:
+    if job.user_id != current_user.id:
         abort(403)
     
     job.status = request.form.get('status')
@@ -35,7 +35,7 @@ def update_job(job_id):
 @login_required
 def delete_job(job_id):
     job = JobApplication.query.get_or_404(job_id)
-    if job.applicant != current_user:
+    if job.user_id != current_user.id:
         abort(403)
         
     db.session.delete(job)

@@ -16,6 +16,7 @@ def get_jobs():
             "company": job.company,
             "role": job.role,
             "status": job.status,
+            "user_id": job.user_id,
             "date_applied": job.date_applied.strftime('%Y-%m-%d')
         })
         
